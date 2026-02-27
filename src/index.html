@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تحدي العباقرة - قناة وسام التعليمية</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@900&amp;display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #000000; --card-bg: #111; --text-main: white;
+            --accent-color: #00ffff; --sec-color: #ff00ff; --quest-color: #fefe00;
+            --zoom-level: 1;
+        }
+        /* الثيمات */
+        body.theme-light { --bg-color: #FFFAF0; --card-bg: #ffffff; --text-main: #2D3436; --accent-color: #0984E3; --sec-color: #E84393; --quest-color: #e67e22; }
+        body.theme-galaxy { --bg-color: #0f0c29; --card-bg: rgba(255, 255, 255, 0.1); --text-main: #ffffff; --accent-color: #a29bfe; --sec-color: #00d2ff; --quest-color: #55efc4; }
+        body.theme-kids-mickey { --bg-color: #ff0000; --card-bg: #fff; --text-main: #000; --accent-color: #fefe00; --sec-color: #000; --quest-color: #fff; }
+        body.theme-kids-neon { --bg-color: #00ff00; --card-bg: #000; --text-main: #fff; --accent-color: #ff00ff; --sec-color: #ffff00; --quest-color: #00ffff; }
+        
+        body { margin: 0; background-color: var(--bg-color); color: var(--text-main); font-family: 'Cairo', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; width: 100vw; overflow: hidden; }
+
+        #game-wrapper { 
+            width: 100%; height: 100%; display: flex; flex-direction: column; 
+            justify-content: center; align-items: center;
+            transform: scale(var(--zoom-level));
+            transition: transform 0.3s ease;
+        }
+
+        /* شاشة الإعدادات */
+        #setup-screen { background: var(--card-bg); padding: 15px; border-radius: 20px; border: 4px solid var(--accent-color); text-align: center; width: 90%; max-width: 500px; z-index: 1000; max-height: 90vh; overflow-y: auto; color: var(--text-main); }
+        .manual-q-box { border: 1px solid var(--accent-color); padding: 10px; border-radius: 10px; margin-bottom: 15px; background: rgba(255,255,255,0.05); }
+        .opt-row { display: grid; grid-template-columns: 30px 1fr auto; gap: 5px; margin-top: 5px; align-items: center; }
+        .img-preview { width: 40px; height: 40px; object-fit: cover; border-radius: 5px; border: 1px solid var(--accent-color); display: none; }
+        input, select { width: 100%; padding: 5px; border-radius: 5px; border: 1px solid #444; background: #222; color: #fff; }
+        .start-btn { background: #D63031; color: white; padding: 12px; font-size: 1.2rem; border-radius: 50px; width: 100%; border: none; cursor: pointer; font-weight: bold; margin-top: 10px; }
+
+        /* شاشة اللعبة */
+        #video-screen { display: none; width: 100vw; height: 100vh; flex-direction: column; justify-content: space-around; align-items: center; padding: 20px; box-sizing: border-box; }
+
+        /* حركة السؤال */
+        @keyframes questionBounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+        .q-animate { animation: questionBounce 2s ease-in-out infinite; }
+        #q-area { display: flex; flex-direction: row-reverse; align-items: center; justify-content: center; gap: 20px; width: 90%; max-height: 30vh; }
+        #question-text { font-size: clamp(1.5rem, 5vw, 2.8rem); font-weight: 900; color: var(--quest-color); text-shadow: 2px 2px 0 #000; text-align: center; max-width: 60%; }
+        #q-main-img { max-height: 25vh; max-width: 35%; border-radius: 15px; border: 4px solid var(--accent-color); display: none; object-fit: contain; }
+
+        #timer-box { font-size: 2.8rem; background: var(--sec-color); color: white; width: 90px; height: 90px; border-radius: 50%; display: flex; justify-content: center; align-items: center; border: 5px solid white; box-shadow: 0 0 15px var(--sec-color); }
+
+        /* الأجوبة */
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 95%; max-width: 950px; }
+        .option-card { 
+            background: var(--card-bg); border: 4px solid var(--accent-color);
+            border-radius: 15px; position: relative; display: flex; flex-direction: row; 
+            align-items: center; height: 120px; padding: 0 15px; overflow: hidden; 
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .opt-img-display { height: 90px; width: 90px; object-fit: contain; border-radius: 8px; margin-left: 10px; flex-shrink: 0; }
+        .option-card span { flex-grow: 1; font-size: clamp(1.1rem, 3vw, 1.8rem); font-weight: 900; text-align: center; }
+
+        /* رقصة الإجابة الصحيحة */
+        @keyframes winnerDance {
+            0% { transform: scale(1) rotate(0); }
+            25% { transform: scale(1.1) rotate(-3deg); }
+            50% { transform: scale(1.1) rotate(3deg); }
+            75% { transform: scale(1.1) rotate(-3deg); }
+            100% { transform: scale(1.1) rotate(0); }
+        }
+        .correct-glow { 
+            background: #00FF00 !important; 
+            color: #000 !important; 
+            border-color: #fff !important; 
+            box-shadow: 0 0 50px #00FF00; 
+            animation: winnerDance 0.5s ease-in-out infinite; 
+            z-index: 10;
+        }
+
+        .letter-label { position: absolute; top: -5px; right: -5px; background: var(--quest-color); color: #000; width: 35px; height: 35px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: 900; border: 2px solid white; font-size: 1rem; }
+    </style>
+</head>
+<body>
+
+<div id="game-wrapper">
+    <div id="setup-screen">
+        <h2>🛠️ إعدادات قناة وسام</h2>
+        <div style="margin-bottom: 15px; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 10px;">
+            <label>حجم العرض: <span id="zoom-val">100</span>%</label>
+            <input type="range" min="0.5" max="1" step="0.05" value="1" oninput="updateZoom(this.value)">
+        </div>
+        <div id="manual-container"></div>
+        <button onclick="addManualQ()" style="width:100%; padding:8px; background:#27ae60; color:white; border:none; border-radius:5px; cursor:pointer;">➕ أضف سؤالاً</button>
+        <div style="display:flex; gap:5px; margin-top:10px;">
+            <button onclick="saveToLocal()" style="flex:1; background:#2980b9; color:white; border:none; padding:5px; border-radius:5px;">💾 حفظ النصوص</button>
+            <button onclick="clearSaved()" style="flex:1; background:#c0392b; color:white; border:none; padding:5px; border-radius:5px;">🗑️ مسح</button>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">
+            <select id="theme-select"><option value="default">🌙 نيون</option><option value="theme-kids-mickey">🍎 ميكي</option><option value="theme-kids-neon">🟢 فسفوري</option><option value="theme-light">🌈 مرح</option></select>
+            <input type="number" id="time-input" value="10">
+        </div>
+        <button class="start-btn" onclick="startChallenge()">ابدأ التحدي 🚀</button>
+    </div>
+
+    <div id="video-screen">
+        <div id="timer-box">10</div>
+        <div id="q-area" class="q-animate">
+            <img id="q-main-img">
+            <div id="question-text">؟</div>
+        </div>
+        <div class="options-grid" id="options-container"></div>
+        <div style="opacity:0.7; font-size:1.3rem; font-weight:bold; color: var(--accent-color);">قناة وسام التعليمية</div>
+    </div>
+</div>
+
+<script>
+    let currentStep = 0, config = {}, manualData = [];
+    const audioTick = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3');
+    const audioWin = new Audio('https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3');
+
+    function updateZoom(val) {
+        document.documentElement.style.setProperty('--zoom-level', val);
+        document.getElementById('zoom-val').innerText = Math.round(val * 100);
+    }
+
+    function handleImgPreview(input) {
+        const preview = input.nextElementSibling;
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = e => { preview.src = e.target.result; preview.style.display = 'block'; };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function addManualQ(data = null) {
+        const div = document.createElement('div'); div.className = 'manual-q-box';
+        div.innerHTML = `
+            <input type="text" placeholder="السؤال" class="m-q-text" value="${data?data.q:''}">
+            <div style="display:flex; align-items:center; gap:10px; margin:5px 0;"><input type="file" onchange="handleImgPreview(this)" class="m-q-img" accept="image/*" style="font-size:0.7rem;"><img class="img-preview"></div>
+            ${[0,1,2,3].map(i => `
+                <div class="opt-row">
+                    <input type="checkbox" class="m-is-correct" ${data?(data.options[i].isCorrect?'checked':''):(i===0?'checked':'')}>
+                    <input type="text" placeholder="الجواب" class="m-opt-txt" value="${data?data.options[i].text:''}">
+                    <div style="display:flex; align-items:center; gap:5px;"><input type="file" onchange="handleImgPreview(this)" class="m-opt-img" accept="image/*" style="width:70px; font-size:0.5rem;"><img class="img-preview"></div>
+                </div>`).join('')}`;
+        document.getElementById('manual-container').appendChild(div);
+    }
+
+    function saveToLocal() {
+        const boxes = Array.from(document.querySelectorAll('.manual-q-box'));
+        const data = boxes.map(box => ({
+            q: box.querySelector('.m-q-text').value,
+            options: Array.from(box.querySelectorAll('.opt-row')).map(row => ({
+                text: row.querySelector('.m-opt-txt').value,
+                isCorrect: row.querySelector('.m-is-correct').checked
+            }))
+        }));
+        localStorage.setItem('wesam_final_v7', JSON.stringify(data));
+        alert("تم الحفظ!");
+    }
+
+    function loadSaved() {
+        const saved = localStorage.getItem('wesam_final_v7');
+        if (saved) JSON.parse(saved).forEach(item => addManualQ(item));
+        else addManualQ();
+    }
+
+    function speak(text) {
+        window.speechSynthesis.cancel();
+        const msg = new SpeechSynthesisUtterance(text);
+        msg.lang = 'ar-SA';
+        window.speechSynthesis.speak(msg);
+    }
+
+    async function startChallenge() {
+        document.body.className = document.getElementById('theme-select').value;
+        config.time = parseInt(document.getElementById('time-input').value);
+        const boxes = document.querySelectorAll('.manual-q-box');
+        manualData = [];
+        for (let box of boxes) {
+            let opts = [];
+            const rows = box.querySelectorAll('.opt-row');
+            for(let row of rows) {
+                const img = row.querySelector('.m-opt-img').files[0];
+                opts.push({ text: row.querySelector('.m-opt-txt').value, img: img ? await toBase64(img) : null, isCorrect: row.querySelector('.m-is-correct').checked });
+            }
+            const qImg = box.querySelector('.m-q-img').files[0];
+            manualData.push({ q: box.querySelector('.m-q-text').value, qImg: qImg ? await toBase64(qImg) : null, options: opts });
+        }
+        document.getElementById('setup-screen').style.display = 'none';
+        document.getElementById('video-screen').style.display = 'flex';
+        playStep();
+    }
+
+    function toBase64(f) { return new Promise(r => { const rd = new FileReader(); rd.onload = e => r(e.target.result); rd.readAsDataURL(f); }); }
+
+    function playStep() {
+        if (currentStep >= manualData.length) { document.getElementById('video-screen').innerHTML = "<h1>كفو! انتهى التحدي 🏆</h1>"; return; }
+        let data = manualData[currentStep];
+        document.getElementById('question-text').innerText = data.q || "";
+        const qImgEl = document.getElementById('q-main-img');
+        if(data.qImg) { qImgEl.src = data.qImg; qImgEl.style.display = 'block'; } else qImgEl.style.display = 'none';
+
+        const container = document.getElementById('options-container'); container.innerHTML = '';
+        let correctVal = "";
+
+        data.options.forEach((opt, i) => {
+            const card = document.createElement('div'); card.className = 'option-card';
+            if(opt.isCorrect) { card.classList.add('is-correct-target'); correctVal = opt.text; }
+            let imgHtml = opt.img ? `<img src="${opt.img}" class="opt-img-display">` : '';
+            card.innerHTML = `<div class="letter-label">${['أ','ب','ج','د'][i]}</div>${imgHtml}<span>${opt.text || ''}</span>`;
+            container.appendChild(card);
+        });
+
+        speak(data.q || "ما هو الجواب؟");
+        let timer = config.time;
+        document.getElementById('timer-box').innerText = timer;
+        let inter = setInterval(() => {
+            timer--; document.getElementById('timer-box').innerText = timer;
+            audioTick.play();
+            if(timer <= 0) {
+                clearInterval(inter); audioWin.play();
+                document.querySelectorAll('.is-correct-target').forEach(el => el.classList.add('correct-glow'));
+                speak("الإجابة الصحيحة هي " + correctVal);
+                setTimeout(() => { currentStep++; playStep(); }, 4000);
+            }
+        }, 1000);
+    }
+    window.onload = loadSaved;
+    function clearSaved() { localStorage.removeItem('wesam_final_v7'); location.reload(); }
+</script>
+</body>
+</html>
